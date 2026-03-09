@@ -1,0 +1,14 @@
+set number
+set relativenumber
+syntax on
+set tabstop=4
+set shiftwidth=4
+set expandtab
+set smartindent
+set mouse=a
+set clipboard=unnamedplus
+set nowrap
+set incsearch
+set hlsearch
+set ignorecase
+set smartcase
