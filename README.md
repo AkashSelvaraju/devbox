@@ -13,14 +13,18 @@ docker build -t devbox .
 ```bash
 docker run -d \
   --name devbox \
+  --hostname devbox \
   --restart unless-stopped \
-  -v C:\dev:/workspace \
-  -v dev-home:/root \
-  -v dev-cache:/root/.cache \
+  -p 2222:22 \
+  -v C:\Users\dev\workspace:/workspace \
+  -v dev-home:/home/dev \
+  -v dev-cache:/home/dev/.cache \
   -v go-mod:/go/pkg/mod \
+  -v C:\Users\dev\.ssh:/home/dev/.ssh \
+  -v C:\Users\dev\.kube:/home/dev/.kube \
+  -v /var/run/docker.sock:/var/run/docker.sock \
   -w /workspace \
-  devbox \
-  sleep infinity
+  devbox
 ```
 
 ## Enter the development shell

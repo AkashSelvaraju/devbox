@@ -30,7 +30,21 @@ RUN apt-get update && apt-get install -y \
     sudo \
     bat \
     fzf \
+    openssh-server \
     && rm -rf /var/lib/apt/lists/*
+
+# ------------------------------------------------
+# SSH server setup
+# ------------------------------------------------
+RUN mkdir /var/run/sshd
+
+# create dev user
+RUN useradd -m -s /usr/bin/zsh dev && \
+    echo "dev:dev" | chpasswd && \
+    usermod -aG sudo dev
+
+# allow password login
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 # ------------------------------------------------
 # Install latest Go
@@ -96,32 +110,31 @@ RUN curl -sS https://starship.rs/install.sh | sh -s -- -y
 # ------------------------------------------------
 # Oh My Zsh
 # ------------------------------------------------
-RUN git clone https://github.com/ohmyzsh/ohmyzsh.git /root/.oh-my-zsh
+RUN git clone https://github.com/ohmyzsh/ohmyzsh.git /home/dev/.oh-my-zsh
 
 # ------------------------------------------------
 # Zsh Plugins
 # ------------------------------------------------
 RUN git clone https://github.com/zsh-users/zsh-autosuggestions \
-    ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+    /home/dev/.oh-my-zsh/custom/plugins/zsh-autosuggestions
 
 RUN git clone https://github.com/zsh-users/zsh-syntax-highlighting \
-    ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+    /home/dev/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
 RUN git clone https://github.com/MichaelAquilina/zsh-you-should-use \
-    ${ZSH_CUSTOM:-/root/.oh-my-zsh/custom}/plugins/you-should-use
+    /home/dev/.oh-my-zsh/custom/plugins/you-should-use
 
 # ------------------------------------------------
 # Config files
 # ------------------------------------------------
-COPY dotfiles/.zshrc /root/.zshrc
-COPY dotfiles/starship.toml /root/.config/starship.toml
-COPY dotfiles/.vimrc /root/.vimrc
+COPY dotfiles/.zshrc /home/dev/.zshrc
+COPY dotfiles/starship.toml /home/dev/.config/starship.toml
+COPY dotfiles/.vimrc /home/dev/.vimrc
 
-# ------------------------------------------------
-# Default shell
-# ------------------------------------------------
-RUN chsh -s /usr/bin/zsh root
+RUN chown -R dev:dev /home/dev
 
 WORKDIR /workspace
 
-CMD ["zsh"]
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd","-D"]
