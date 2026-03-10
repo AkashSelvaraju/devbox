@@ -89,6 +89,13 @@ RUN curl -LO https://github.com/operator-framework/operator-sdk/releases/latest/
     mv operator-sdk_linux_amd64 /usr/local/bin/operator-sdk
 
 # ------------------------------------------------
+# Docker CLI
+# ------------------------------------------------
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    && rm -rf /var/lib/apt/lists/*
+
+# ------------------------------------------------
 # helm
 # ------------------------------------------------
 RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
@@ -137,4 +144,7 @@ WORKDIR /workspace
 
 EXPOSE 22
 
-CMD ["/usr/sbin/sshd","-D"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]
