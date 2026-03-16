@@ -1,3 +1,46 @@
+# ------------------------------------------------
+# Stage 1: Build OpenCV
+# ------------------------------------------------
+FROM ubuntu:22.04 AS opencv-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    pkg-config \
+    libgtk-3-dev \
+    libgl1-mesa-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
+    libtbb-dev \
+    libeigen3-dev
+
+WORKDIR /opt
+
+RUN git clone --depth 1 https://github.com/opencv/opencv.git
+
+RUN mkdir /opt/opencv/build
+WORKDIR /opt/opencv/build
+
+RUN cmake .. \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D CMAKE_INSTALL_PREFIX=/opt/opencv-install \
+    -D BUILD_LIST=core,imgproc,highgui,videoio,dnn
+
+RUN make -j$(nproc)
+RUN make install
+
+# ------------------------------------------------
+# Stage 2: Runtime environment
+# ------------------------------------------------
+
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -90,27 +133,12 @@ RUN apt-get install -y \
     vtk9 \
     libvtk9-dev \
     meshlab \
-    ffmpeg
+    ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------
-# Install latest OpenCV
+# Copy OpenCV from OpenCV Builder
 # ------------------------------------------------
-WORKDIR /opt
-
-RUN git clone https://github.com/opencv/opencv.git && \
-    cd opencv && \
-    git checkout 4.x
-
-RUN mkdir /opt/opencv/build
-WORKDIR /opt/opencv/build
-
-RUN cmake .. \
-    -D CMAKE_BUILD_TYPE=Release \
-    -D CMAKE_INSTALL_PREFIX=/usr/local \
-    -D BUILD_LIST=core,imgproc,highgui,videoio,dnn
-
-RUN make -j$(nproc)
-RUN make install
+COPY --from=opencv-builder /opt/opencv-install /usr/local
 RUN ldconfig
 
 # ------------------------------------------------
@@ -129,6 +157,8 @@ ENV ONNXRUNTIME_ROOT=/opt/onnxruntime
 # ------------------------------------------------
 # Python ML and visualization tools
 # ------------------------------------------------
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
 RUN pip install \
     numpy \
     scipy \
@@ -141,16 +171,8 @@ RUN pip install \
     plotly \
     open3d \
     onnx \
-    onnxruntime
-
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
-RUN pip install ultralytics
-
-# ------------------------------------------------
-# Dataset tools
-# ------------------------------------------------
-RUN pip install \
+    onnxruntime \
+    ultralytics \
     nuscenes-devkit \
     pyquaternion
 
