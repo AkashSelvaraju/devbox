@@ -5,29 +5,13 @@ A Docker-based Ubuntu 22.04 development environment for Kubernetes operator deve
 ## Build the image
 
 ```bash
-docker build -t devbox .
-````
-
-## Run the container on windows
-
-```cmd
-docker run -d ^
-  --name devbox ^
-  --hostname devbox ^
-  --restart unless-stopped ^
-  -p 2222:22 ^
-  -v C:\Users\<windows user name>\Work:/workspace ^
-  -v dev-home:/home/dev ^
-  -v dev-cache:/home/dev/.cache ^
-  -v go-mod:/go/pkg/mod ^
-  -v C:\Users\<windows user name>\.ssh:/home/dev/.ssh ^
-  -v C:\Users\<windows user name>\.kube:/home/dev/.kube ^
-  -v /var/run/docker.sock:/var/run/docker.sock ^
-  -w /workspace ^
-  akashselvaraju/devbox:latest
+docker build -t devbox_cv:<version> .
 ```
 
-## Run the container on linux
+## Running the Devbox Container
+
+Start the development container with:
+
 ```bash
 docker run -d \
   --name devbox \
@@ -36,16 +20,83 @@ docker run -d \
   -p 2222:22 \
   -e HOST_UID=$(id -u) \
   -e HOST_GID=$(id -g) \
-  -v $HOME/Work:/workspace \
+  -v $HOME/workspace:/workspace \
   -v dev-home:/home/dev \
   -v dev-cache:/home/dev/.cache \
-  -v go-mod:/go/pkg/mod \
-  -v $HOME/.ssh:/home/dev/.ssh \
-  -v $HOME/.kube:/home/dev/.kube \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  --device=/dev/video0 \
+  --group-add video \
+  --shm-size=1g \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
   -w /workspace \
-  akashselvaraju/devbox:1.1.0
+  akashselvaraju/devbox_cv:latest
 ```
+
+### Container Configuration
+
+#### Container Lifecycle
+
+| Option                     | Description                                                  |
+| -------------------------- | ------------------------------------------------------------ |
+| `-d`                       | Run the container in detached (background) mode.             |
+| `--name devbox`            | Assign the container the name **devbox**.                    |
+| `--hostname devbox`        | Set the container’s internal hostname.                       |
+| `--restart unless-stopped` | Automatically restart the container unless manually stopped. |
+
+### Networking
+
+| Option       | Description                                                            |
+| ------------ | ---------------------------------------------------------------------- |
+| `-p 2222:22` | Map host port **2222** to container **SSH port 22** for remote access. |
+
+### User Identity
+
+| Option                 | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `-e HOST_UID=$(id -u)` | Pass the host user's UID to match file permissions. |
+| `-e HOST_GID=$(id -g)` | Pass the host user's GID to match file permissions. |
+
+### Volumes & Persistent Storage
+
+| Option                                         | Description                                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| `-v $HOME/workspace:/workspace`                | Mount host workspace directory inside the container.                             |
+| `-v dev-home:/home/dev`                        | Persist the container user's home directory using a Docker volume.               |
+| `-v dev-cache:/home/dev/.cache`                | Persist cache files to speed up builds and package installs.                     |
+| `-v /var/run/docker.sock:/var/run/docker.sock` | Allow the container to access the host's Docker daemon (Docker-in-Docker style). |
+
+### Hardware Access
+
+| Option                 | Description                                                       |
+| ---------------------- | ----------------------------------------------------------------- |
+| `--device=/dev/video0` | Provide access to the host webcam device.                         |
+| `--group-add video`    | Add container user to the **video** group for camera permissions. |
+
+### GUI / Display Support
+
+| Option                             | Description                                                         |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| `-e DISPLAY=$DISPLAY`              | Forward the host X11 display environment variable.                  |
+| `-v /tmp/.X11-unix:/tmp/.X11-unix` | Mount the X11 socket to enable GUI applications from the container. |
+
+### Performance
+
+| Option          | Description                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `--shm-size=1g` | Increase shared memory to **1GB** (important for OpenCV, ML, and browsers). |
+
+### Working Directory
+
+| Option          | Description                                            |
+| --------------- | ------------------------------------------------------ |
+| `-w /workspace` | Set the container’s working directory to `/workspace`. |
+
+### Image
+
+| Image                             | Description                                                 |
+| --------------------------------- | ----------------------------------------------------------- |
+| `akashselvaraju/devbox_cv:latest` | Development environment image with computer vision tooling. |
 
 ## Enter the development shell
 
