@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
@@ -6,7 +6,8 @@ ENV TZ=UTC
 # ------------------------------------------------
 # Base packages
 # ------------------------------------------------
-RUN apt-get update && apt-get install -y \
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     make \
@@ -19,7 +20,6 @@ RUN apt-get update && apt-get install -y \
     jq \
     ripgrep \
     vim \
-    tmux \
     less \
     file \
     iputils-ping \
@@ -29,22 +29,24 @@ RUN apt-get update && apt-get install -y \
     zsh \
     sudo \
     bat \
-    fzf \
-    openssh-server \
-    && rm -rf /var/lib/apt/lists/*
+    openssh-server
+
+
+# Create a non-root user
+RUN useradd -m -s /usr/bin/zsh dev \
+  && echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev \
+  && chmod 0440 /etc/sudoers.d/dev
+
 
 # ------------------------------------------------
 # SSH server setup
 # ------------------------------------------------
-RUN mkdir /var/run/sshd
-
-# create dev user
-RUN useradd -m -s /usr/bin/zsh dev && \
-    echo "dev:dev" | chpasswd && \
-    usermod -aG sudo dev
-
-# allow password login
-RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+RUN mkdir -p /etc/ssh/sshd_config.d /run/sshd \
+  && printf '%s\n' \
+    'PubkeyAuthentication yes' \
+    'PasswordAuthentication no' \
+    'PermitRootLogin no' \
+    > /etc/ssh/sshd_config.d/99-custom.conf
 
 # ------------------------------------------------
 # Install latest Go
@@ -58,6 +60,12 @@ RUN GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n1) && \
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH=/go
 ENV PATH="${PATH}:/go/bin"
+RUN mkdir -p ${GOPATH}/pkg/mod ${GOPATH}/bin /home/dev/.cache
+
+# ------------------------------------------------
+# herdr
+# ------------------------------------------------
+RUN curl -fsSL https://herdr.dev/install.sh | sh
 
 # ------------------------------------------------
 # kubectl
@@ -76,8 +84,7 @@ RUN git clone https://github.com/ahmetb/kubectx /opt/kubectx && \
 # ------------------------------------------------
 # k9s
 # ------------------------------------------------
-RUN K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep tag_name | cut -d '"' -f4) && \
-    curl -L https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz \
+RUN curl -L https://github.com/derailed/k9s/releases/download/v0.51.0/k9s_Linux_amd64.tar.gz \
     | tar -xz && \
     mv k9s /usr/local/bin/
 
@@ -89,25 +96,24 @@ RUN curl -LO https://github.com/operator-framework/operator-sdk/releases/latest/
     mv operator-sdk_linux_amd64 /usr/local/bin/operator-sdk
 
 # ------------------------------------------------
-# Docker CLI
+# OpenShift CLI (oc)
 # ------------------------------------------------
-RUN apt-get update && apt-get install -y \
-    docker.io \
-    && rm -rf /var/lib/apt/lists/*
+RUN curl -L "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz" \
+    | tar -xz -C /tmp && \
+    install -m 0755 /tmp/oc /usr/local/bin/oc && \
+    install -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
+    rm -f /tmp/oc /tmp/kubectl
 
 # ------------------------------------------------
 # helm
 # ------------------------------------------------
 RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-# ------------------------------------------------
-# k3s CLI and k3d
-# ------------------------------------------------
-RUN K3S_VERSION=$(curl -s https://api.github.com/repos/k3s-io/k3s/releases/latest | grep tag_name | cut -d '"' -f4) && \
-    curl -L https://github.com/k3s-io/k3s/releases/download/${K3S_VERSION}/k3s -o /usr/local/bin/k3s && \
-    chmod +x /usr/local/bin/k3s
+RUN mkdir -p /home/dev/.oh-my-zsh \
+ && chown -R dev:dev /home/dev
 
-RUN curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+USER dev
+WORKDIR /home/dev
 
 # ------------------------------------------------
 # starship prompt
@@ -134,6 +140,8 @@ RUN git clone https://github.com/MichaelAquilina/zsh-you-should-use \
 # ------------------------------------------------
 # Config files
 # ------------------------------------------------
+USER root
+
 COPY dotfiles/.zshrc /home/dev/.zshrc
 COPY dotfiles/starship.toml /home/dev/.config/starship.toml
 COPY dotfiles/.vimrc /home/dev/.vimrc
@@ -142,9 +150,9 @@ RUN chown -R dev:dev /home/dev
 
 WORKDIR /workspace
 
+COPY start-sshd.sh /usr/local/bin/start-sshd.sh
+
+RUN chmod +x /usr/local/bin/start-sshd.sh
+
 EXPOSE 22
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-CMD ["/entrypoint.sh"]
+CMD ["/usr/local/bin/start-sshd.sh"]

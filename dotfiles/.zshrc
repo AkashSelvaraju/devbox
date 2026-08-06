@@ -11,6 +11,14 @@ plugins=(
   zsh-syntax-highlighting
 )
 
+export GOPATH=$HOME/go
+export PATH="/usr/local/go/bin:/go/bin:${PATH}"
+
+export PATH="$HOME/.local/bin:$PATH"
+
+export PATH="/workspace/tools:${PATH}"
+export PATH="/workspace/bin:${PATH}"
+
 source $ZSH/oh-my-zsh.sh
 
 eval "$(starship init zsh)"
