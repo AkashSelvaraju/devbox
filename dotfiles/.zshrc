@@ -12,12 +12,15 @@ plugins=(
 )
 
 export GOPATH=$HOME/go
-export PATH="/usr/local/go/bin:/go/bin:${PATH}"
+export PATH="${GOPATH}/bin:/usr/local/go/bin:/go/bin:${PATH}"
 
 export PATH="$HOME/.local/bin:$PATH"
 
 export PATH="/workspace/tools:${PATH}"
 export PATH="/workspace/bin:${PATH}"
+
+export CONTAIER_HOST="unix:///var/run/podman/podman.sock"
+export DOCKER_HOST="unix:///var/run/podman/podman.sock"
 
 source $ZSH/oh-my-zsh.sh
 

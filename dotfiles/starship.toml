@@ -11,7 +11,7 @@ error_symbol = "[🎃💥>>](bold red) "
 
 [custom.prompt_char]
 when = "true"
-command = "printf '%s\n' '🎃'| shuf -n1"
+command = "printf '%s\n' '🎃' ' 👻'| shuf -n1"
 format = "[$output](bold white)"
 
 # Username

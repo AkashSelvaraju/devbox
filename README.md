@@ -6,12 +6,14 @@ A Docker-based Ubuntu 22.04 development environment for Kubernetes operator deve
 
 ```bash
 docker build -t devbox .
-````
+```
 
 ## SSH key setup for logging into the container
+
 the keys mounted at /key/authorized_keys to the container will be installed as authorized keys for logging into the container via ssh as dev user
 
 ## Run the container on windows
+
 copy your public ssh key to C:\devbox-ssh using the following command in cmd or powershell
 
 ```cmd
@@ -20,12 +22,14 @@ cp %USERPROFILE%\.ssh\<your-dev-box-sshkey>.pub C:\devbox-ssh\authorized_keys
 ```
 
 start the container using the following command in cmd or powershell
+
 ```cmd
 docker run -d ^
   --name devbox ^
   --hostname devbox ^
   --restart unless-stopped ^
   -p 2222:22 ^
+  -v "/run/user/1000/podman/podman.sock:/var/run/podman/podman.sock ^
   -v "C:\devbox-ssh:/keys:ro" ^
   -v "%USERPROFILE%\workspace:/workspace" ^
   -v "%USERPROFILE%\Downloads:/downloads" ^
@@ -45,12 +49,14 @@ cp ~/.ssh/<your-dev-box-sshkey>.pub ~/.ssh/devbox-ssh/
 ```
 
 run the container using the following command in terminal
+
 ```bash
 docker run -d \
   --name devbox \
   --hostname devbox \
   --restart unless-stopped \
   -p 2222:22 \
+  -v "/run/user/1000/podman/podman.sock:/var/run/podman/podman.sock \
   -v "C:\devbox-ssh:/keys:ro" \
   -v "%USERPROFILE%\workspace:/workspace" \
   -v "%USERPROFILE%\Downloads:/downloads" \
